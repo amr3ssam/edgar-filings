@@ -1,15 +1,15 @@
 import { config } from '../config'
 import { HttpError } from '../errors'
 
-const minGAP = 125
-const retruDelay = 1000
+const minGapMs = 125
+const retryDelayMs = 1000
 
 let nextSlot = 0
 
 async function waitForSlot() {
     const now = Date.now()
     const wait = Math.max(0, nextSlot - now)
-    nextSlot = Math.max(now, nextSlot) + minGAP
+    nextSlot = Math.max(now, nextSlot) + minGapMs
     if (wait > 0) await Bun.sleep(wait)
 }
 
@@ -27,7 +27,7 @@ export async function secFetch<T>(url: string): Promise<T> {
         if (res.ok) return (await res.json()) as T
         if (res.status === 404) throw new HttpError(404, 'Not found on SEC')
         if (res.status === 429 && attempt === 1) {
-            await Bun.sleep(retruDelay)
+            await Bun.sleep(retryDelayMs)
             continue
         }
         throw new HttpError(502, `SEC responded with ${res.status}`)
