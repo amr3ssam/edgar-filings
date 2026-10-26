@@ -1,11 +1,18 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { config } from './config'
 import { HttpError } from './errors'
+import { apiRouter } from './routes'
 
 const app = express()
 
 app.get('/health', (_req, res) => {
     res.json({ ok: true })
+})
+
+app.use(apiRouter)
+
+app.use((_req, res) => {
+    res.status(404).json({ error: 'Not found' })
 })
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
