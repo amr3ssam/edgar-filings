@@ -31,3 +31,21 @@ export function queryFilings(filings: Filing[], query: FilingsQuery) {
         },
     }
 }
+export function oneYearAgo(today: Date): string {
+    const date = new Date(today)
+    date.setUTCFullYear(date.getUTCFullYear() - 1)
+    if (date.getUTCMonth() !== today.getUTCMonth()) date.setUTCDate(0)
+
+    return date.toISOString().slice(0, 10)
+}
+
+export function summarizeFilings(filings: Filing[], since: string) {
+    const countsByForm: Record<string, number> = {}
+    for (const filing of filings) {
+        if (filing.filingDate >= since) {
+            countsByForm[filing.form] = (countsByForm[filing.form] ?? 0) + 1
+        }
+    }
+    const latest10K = filings.find((f) => f.form === '10-K')?.filingDate ?? null
+    return { countsByForm, latest10K }
+}

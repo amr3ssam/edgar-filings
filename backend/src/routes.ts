@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { queryFilings } from './sec/query'
+import { oneYearAgo, queryFilings, summarizeFilings } from './sec/query'
 import { getRecent } from './sec/companies'
-import { resolveTicker } from './sec/tickers'
+import { normalizeTicker, resolveTicker } from './sec/tickers'
 
 export const apiRouter = Router()
 
@@ -19,4 +19,25 @@ apiRouter.get('/companies/:ticker/filings', async (req, res) => {
         availableForms: recent.availableForms,
         ...queryFilings(recent.filings, { form, sort, page, pageSize }),
     })
+})
+
+
+apiRouter.get('/filings/summary', async (req, res) => {
+    const raw = typeof req.query.tickers === 'string' ? req.query.tickers : ''
+    const tickers = [...new Set(raw.split(',').map(normalizeTicker).filter(Boolean))]
+    const since = oneYearAgo(new Date())
+
+    const companies = await Promise.all(
+        tickers.map(async (ticker) => {
+            try {
+                const company = await resolveTicker(ticker)
+                const recent = await getRecent(company.cik)
+                return { ticker: company.ticker, name: recent.name, ...summarizeFilings(recent.filings, since) }
+            } catch (err) {
+                return { ticker, error: err instanceof Error ? err.message : 'Unknown error' }
+            }
+        }),
+    )
+
+    res.json({ since, companies })
 })
